@@ -1,0 +1,95 @@
+---
+title: "ETC3550 Assignment 6 - Nhi (Chelsea) Le - 30100259"
+author: "Nhi (Chelsea) Le"
+date: "5/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+>> Q1:  Find the best ETS model for your retail data. (i.e., find the model with the minimum AICc value computed using all available data).
+
+```{r}
+library(fpp3)
+library(tsibble)
+library(tidyverse)
+
+set.seed(30100259)
+myseries <- aus_retail %>%
+  filter(
+    `Series ID` == sample(aus_retail$`Series ID`,1),
+    Month < yearmonth("2018 Jan")
+  )
+```
+
+```{r}
+myseries %>% autoplot(Turnover)
+```
+* **From looking at the time series plot, we know that our model should take into account the **increasing trend**. There should also be **multiplicative seasonality** because the size of the seasonal fluctuations seems to increase with the level.**
+
+```{r}
+fit <- myseries %>% 
+  model(ETS(Turnover))
+
+fit %>% report()
+```
+
+> The best model with lowest AICc for my retail time series is ETS(M, Ad, M) - multiplicative errors, additive damped trend and multiplicative seasonality. 
+
+>> Q2: Now use time series cross-validation on your data to compare the model from step 1, along with ETS(M,N,M), ETS(M,A,M) and ETS(M,Ad,M) models. 
+
+```{r}
+#data for cross validation
+
+cross_valid <- myseries %>% 
+  stretch_tsibble(.init = 36, .step =1) %>% 
+  filter(.id != max(.id))
+cross_valid
+```
+
+```{r}
+
+#applying cross validation to the 3 models, producing one step forecasts and comparing the RMSEs
+
+fit_cross_valid <- cross_valid %>% 
+  model(
+    MAdM = ETS(Turnover ~ error("M") + trend("Ad") + season("M")),
+    MNM = ETS(Turnover ~ error("M") + trend("N") + season("M")),
+    MAM = ETS(Turnover ~ error("M") + trend("A") + season("M"))
+  )
+
+fit_cross_valid %>%
+  forecast(h = 1) %>%
+  accuracy(myseries) %>% 
+  arrange(RMSE) %>% 
+  select(.model, RMSE)
+```
+> Using cross validation and judging by RMSE, the best model is now ETS(MAM), followed closely by MAdM with an almost negligible difference in RMSE (by 0.1). We will see why this is the case by looking at the plot below.
+
+>> Q3: Which model do you prefer for your data? Explain your answer.
+
+```{r}
+fit <- myseries %>% 
+  model(MAdM = ETS(Turnover ~ error("M") + trend("Ad") + season("M")),
+        MNM = ETS(Turnover ~ error("M") + trend("N") + season("M")), 
+        MAM = ETS(Turnover ~ error("M") + trend("A") + season("M"))) 
+
+fit %>%
+  forecast(h=48) %>%
+  autoplot(myseries)
+
+```
+
+> In this case, for my data, I would prefer ETS(M,A,M) because: 
+
+* There is clearly an increasing trend component when looking at the time series plot, making ETS(M,N,M) an unsuitable model. That is also why its prediction intervals are so unrealistically wide. 
+
+* ETS(MAdM), while giving smallest AICc, also produces very wide prediction intervals. Moreover, the trend looks like it will continue to increase going forward, therefore, damping the trend component here might underestimate point forecasts. 
+
+* ETS(MAM) produces better prediction intervals, and its point forecasts also make more sense if we take into account the likelihood of the trend increasing in future months. 
+
+
+
+

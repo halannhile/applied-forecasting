@@ -1,0 +1,114 @@
+---
+title: "ETC3550 - Assignment 4"
+author: "Ha Lan Nhi (Chelsea) Le - 30100259"
+date: "4/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+* Consider the number of pigs slaughtered in New South Wales (data set aus_livestock).
+
+1. Create training data consisting of all but the last four years.
+
+```{r}
+library(fpp3)
+library(tidyverse)
+nsw_pigs <- aus_livestock %>% 
+  filter(State == "New South Wales") %>% 
+  filter(Animal == "Pigs")
+
+nsw_pigs_training <- nsw_pigs %>% 
+  filter(year(Month) < 2015)
+
+nsw_pigs_training
+```
+
+2. Use the seasonal naive method on your training data to forecast four years ahead.
+
+```{r}
+snaive_model <- nsw_pigs_training %>%
+  model(SNAIVE(Count ~ lag("year"))) 
+
+snaive_model %>% forecast(h = "48 months") %>% 
+  autoplot(nsw_pigs_training, level = NULL, color = "light blue") +
+ labs(title = "NSW Pigs Slaughtered: Seasonal Naive Forecast", subtitle = "For four years from Jan 2015 to Dec 2018")
+```
+
+3. Check the residuals of your model using gg_tsresiduals(). Do they resemble white noise?
+
+```{r}
+gg_tsresiduals(snaive_model)
+```
+
+> The residuals of this model do not resemble white noise because there are still prominent patterns in the residuals line plot, high autocorrelations especially during the first 11 forecasts in the ACF plot and asymmetric, fat-tailed histogram of the residuals. This is confirmed by conducting a Ljung-Box test, which returns p-value <0.05, suggesting that we reject the null hypothesis that the residuals series resembles that of white noise at 0.05 significance level. 
+
+```{r}
+augment(snaive_model) %>% features(.resid, ljung_box, lag = 11, dof = 0)
+```
+
+
+4. Plot the forecasts against the actual values and compute the MASE for the test period.
+
+```{r}
+nsw_pigs_fc <- snaive_model %>% 
+  forecast(h = "48 months") 
+
+nsw_pigs_fc %>% 
+  autoplot(nsw_pigs, level = NULL, color = "light blue", lwd = 1) +
+  labs(title = "NSW Pigs Slaughtered: Seasonal Naive Forecast", subtitle = "For four years from Jan 2015 to Dec 2018")
+```
+> A closer look: 
+
+```{r}
+nsw_pigs_fc <- snaive_model %>% 
+  forecast(h = "48 months") 
+
+nsw_pigs_fc %>% 
+  autoplot(filter(nsw_pigs, year(Month) >=2010), level = NULL, color = "light blue", lwd = 1) +
+  labs(title = "NSW Pigs Slaughtered: Seasonal Naive Forecast", subtitle = "For four years from Jan 2015 to Dec 2018")
+```
+
+> The MASE for the test period can be computed coveniently using R's `accuracy()` function: 
+
+```{r}
+accuracy(nsw_pigs_fc, nsw_pigs)$MASE
+```
+
+> we can also calculate MASE manually to see if the accuracy()'s output is correct: 
+
+> Calculate denominator of scaled error for seasonal naive forecasts: 
+
+```{r}
+nsw_pigs_scaled_error <- nsw_pigs_training %>% 
+  mutate(Observation = c(1:510), 
+         Lag_12 = lag(Count, n = 12)) %>% 
+  as_tibble() %>% 
+  select(Count, Observation, Lag_12) %>%
+  mutate(Error = abs(Count - Lag_12)) 
+nsw_pigs_scaled_error[is.na(nsw_pigs_scaled_error)] = 0
+denominator <- (1/(510-12))*sum(nsw_pigs_scaled_error$Error)
+```
+
+> Calculating the numerator terms and the MASE: 
+
+```{r}
+fc_ts <- nsw_pigs_fc %>% 
+  as_tsibble() %>%
+  select(Month, Count) %>% 
+  transmute(count_fc = Count)
+  
+nsw_pigs_scaled_error_2 <- nsw_pigs %>% select(Month, Count) %>%
+  filter(year(Month) >= 2015) %>% 
+  transmute(count_original = Count) %>% 
+  left_join(fc_ts, by = "Month") %>% 
+  mutate(resid = count_original - count_fc) %>% 
+  mutate(scaled_error = abs(resid/denominator)) 
+
+#MASE calculated manually: 
+mean(nsw_pigs_scaled_error_2$scaled_error)
+```
+
+> This confirms that the MASE produced automatically by `accuracy()` is exactly what we're looking for - a sign that our code so far is correct. 

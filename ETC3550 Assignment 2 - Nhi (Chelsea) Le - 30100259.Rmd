@@ -1,0 +1,69 @@
+---
+title: "ETC3550 Assignment 2"
+author: "Nhi (Chelsea) Le - 30100259"
+date: "3/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(fpp3)
+library(tidyverse)
+```
+
+```{r}
+set.seed(30100259)
+aus_retail_timeseries <- aus_retail %>%
+  filter(
+    `Series ID` == sample(aus_retail$`Series ID`,1),
+    Month <= yearmonth("2018 Jan")
+  )
+aus_retail_timeseries
+```
+
+```{r}
+aus_retail_plot <- aus_retail_timeseries %>% 
+  autoplot(Turnover) + 
+  labs(title = "Timeseries plot: New South Wales retail trade turnover", subtitle = "Pharmaceutical, cosmetic and toiletry goods retailing") +
+  ylab("million AUD") 
+aus_retail_plot
+```
+
+* **There is a clear upward trend throughout the whole time series (suggesting that turnover for this sector in NSW tends to increase with time), with evidence of cyclic behaviour of rises and falls that are not of fixed frequency, spanning 8 - 10 years and more.** 
+
+- In around 1997, there was a dip in turnover for Pharmaceutical, cosmetic and toiletry goods retailing	in NSW, probably due to the Asian financial crisis at that time; a significant decrease in 2008 due to the GFC and a smaller dip in 2015 due to the slight recession Australia was experiencing that year. 
+
+## Overall, turnover does increase through time, and more so during recent years (due to the overall improvements in the economy and people's increased living standards), and tends to decrease during recessions. 
+
+```{r}
+aus_retail_season <- aus_retail_timeseries %>% 
+  gg_season(Turnover) + 
+  labs(title = "Seasonal plot: New South Wales retail trade turnover", subtitle = "Pharmaceutical, cosmetic and toiletry goods retailing") +
+  ylab("million AUD") 
+aus_retail_season
+```
+
+> This seasonal plot shows that there is a significant increase in turnover for Pharmaceutical, cosmetic and toiletry goods retailing	in NSW in December of every year, probably due to increased demand during the holiday season and people stocking up before the end of financial year. 
+
+> There is also a slight dip in turnover for February, April, June, September, November and then usually a jump in turnover for March, May, July, August, October. This might be due to the difference in days of each month (fewer days means slightly lower turnover). 
+
+```{r}
+aus_retail_subseries <- aus_retail_timeseries %>% 
+  gg_subseries(Turnover) + 
+  ylab("million AUD") + 
+labs(title = "Seasonal subseries plot: New South Wales retail trade turnover", subtitle = "Pharmaceutical, cosmetic and toiletry goods retailing")
+aus_retail_subseries
+```
+
+> This seasonal subseries plot allows us to more clearly see the seasonal patterns discussed above. 
+
+> The mean turnover for December did actually increase significantly compared to other months' turnovers. 
+
+> The slight rises and falls in the remaining months (due to differences in number of days) as detailed in the previous description are also revealed here. 
+
+> We can also see the evident upward trend in turnover throughout the whole time period as discussed in plot 1 as well. 
+
+> Apart from confirming our analyses of the previous two plots, this plot is not particularly more revealing in many ways. 

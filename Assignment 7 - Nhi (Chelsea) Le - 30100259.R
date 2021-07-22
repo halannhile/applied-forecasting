@@ -1,0 +1,18 @@
+library(fpp3)
+library(tidyverse)
+
+ar2 <- function(n, c, phi1, phi2, sigma){
+  
+  if(abs(phi2) >= 1){warning("It must be that -1 < phi1 < 1 to satisfy stationarity conditions for AR(2)")}
+  
+  if(phi1 + phi2 >= 1){warning("It must be that phi1 + phi2 < 1 to satisfy stationarity conditions for AR(2)")}
+  
+  if(phi2 - phi1 >= 1){warning("It must be that phi2 - phi1 < 1 to satisfy stationarity conditions for AR(2)")}
+  
+  data <- c(rep(c/(1-phi1-phi2), 2), rep(0, (n-2)))
+  
+  for (i in 3:n){
+    data[i] = c + phi1 * data[i-1] + phi2 * data[i-2] + rnorm(1,0,sigma)
+  }
+  return(data)
+}

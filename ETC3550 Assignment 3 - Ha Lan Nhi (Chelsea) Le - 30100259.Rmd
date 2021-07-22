@@ -1,0 +1,87 @@
+---
+title: "ETC3550 Assignment 3 - Ha Lan Nhi (Chelsea) Le - 30100259"
+author: "Nhi (Chelsea) Le"
+date: "4/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r, echo = FALSE}
+library(fpp3)
+library(tidyverse)
+library(kableExtra)
+```
+
+# Question 1: 
+
+```{r}
+set.seed(30100259)
+aus_retail_timeseries <- aus_retail %>%
+  filter(
+    `Series ID` == sample(aus_retail$`Series ID`,1),
+    Month <= yearmonth("2018 Jan")
+  )
+aus_retail_timeseries %>% head(10) %>% kable()
+```
+
+
+**This is a plot of the original data, before any transformations:** 
+
+```{r}
+aus_retail_timeseries %>% autoplot(Turnover) + 
+  labs(title = "Turnover for NSW's pharmaceutical, cosmetic and toiletry goods retailing", subtitle = "Orginal data")
+```
+
+> Plot of transformed data using lambda guerrero = 0.04394935: 
+
+```{r}
+lambda_aus_retail <- aus_retail_timeseries %>% 
+  features(Turnover, features = guerrero) %>% 
+  pull(lambda_guerrero) 
+aus_retail_timeseries %>% autoplot(box_cox(Turnover, lambda_aus_retail)) + 
+  labs(title = "Turnover for NSW's pharmaceutical, cosmetic and toiletry goods retailing", subtitle = "With guerrero lambda = 0.04394935")
+```
+
+```{r}
+lambda_aus_retail
+```
+
+> Plot of transformed data using log transformation (i.e. lambda = 1): 
+
+```{r}
+aus_retail_timeseries %>% autoplot(log(Turnover)) + 
+  labs(title = "Turnover for NSW's pharmaceutical, cosmetic and toiletry goods retailing", subtitle = "Log of original data, i.e. lambda = 1")
+```
+
+> After trying out different $\lambda$ values for transforming my data, I've decided on log transformation, i.e. $\lambda = 1$ because it does a decently good job of removing a majority of the heteroskedasticity in the orginal data. As seen in the above plot, deviations from the mean throughout the whole period, after log transformation, are quite constant, maybe still a little higher in the middle, but not too much. That being said, this particular problem does persist with other lambda values so if our goal is not to obtain perfectly uniform variances then it should not be the main issue. 
+
+> Moreover, log transformation also has greater interpretability than other $\lambda$ values as it can be directly interpreted as the percentage change in Y (i.e. turnover in this case) which will be of more importance to us in the end than perfect homoskedasticity. 
+
+> So in a nutshell, log transformation, or  $\lambda = 1$ is chosen for this particular time series. 
+
+> Question 2: 
+
+```{r}
+aus_retail_timeseries <- aus_retail_timeseries %>%
+  mutate(log_turnover = log(Turnover))
+
+aus_retail_timeseries %>% 
+  model(STL(log_turnover ~ trend(window = 7) + season(window = 13), robust = TRUE)) %>% 
+  components() %>% 
+  autoplot()
+```
+> For this particular STL decomposition, a trend window of 7 was chosen to allow for more flexibility which helps prevent important signals from leaking into the remainder. 
+
+> Seasonal window was set to 13 (default STL setting) so as to make the seasonal component almost identical across all year, avoid overfitting the seasonality and allow it to change slowly over time.  
+
+> The remainder series looks like white noise (which is a good sign), except for some strong peaks and drops in the early 1990s, probably due to making the model robust to outliers so that they won't affect estimates of the trend-cycle and seasonal components. 
+
+> Overall, looking at the trend-cycle component, signals on the Asian financial crisis in 1997, GFC in 2008 and Australian mild recession in 2015 are all well-captured by this model with the above-mentioned settings and are not leaked into the remainder component. This decomposition component also confirms with our observation by preliminarily looking at the data that Turnover for NSW's pharmaceutical, cosmetic and toiletry goods retailing does follow a steady upward trend over time. The only thing to note here is because this is a decomposition of the logged data, figures are expressed in terms of percentage change, yet it (i.e. the percentage change) still conveys the similar idea as level change. 
+
+> The seasonal component shows that turnover for the whole period follows a similar fashion every year - increasing rapidly towards the end of the year due to increased demand for the holiday season and end of financial year, as well as some ups and downs among the months due to difference in number of days per month. Notably, seasonal patterns appear to be stronger in the last 25 years or so than does the 1980s. 
+
+> The remainder component, as mentioned before, is subject to outliers robustness. For the most part, it does look like white noise, meaning that the important features are fully captured by the trend-cycle and seasonal components, so what's left is purely random, unmodelable error caused by unknown factors. Robust = TRUE means there are still some notable deviations from the mean though not by too much, due to the impact from outliers. 
+

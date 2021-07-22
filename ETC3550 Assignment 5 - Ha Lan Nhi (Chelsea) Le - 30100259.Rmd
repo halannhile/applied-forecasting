@@ -1,0 +1,79 @@
+---
+title: "ETC3550 Assignment 5"
+author: "Ha Lan Nhi (Chelsea) Le - 30100259"
+date: "5/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> Forecasts using my function: 
+
+```{r}
+library(fpp3)
+library(tidyverse)
+
+#formatting data 
+ets<- function(y,h){
+  values <- tibble(index = 0:(length(y)),data = as.numeric(c(NA,y)))
+  values <- mutate(values,level=NA,fitted=NA)
+  
+#my simple exponential smoothing equation
+my_ses <- function(par){
+  alpha <- par[1]
+  level <- par[2]
+  values$level[1] = par[2]
+  for(i in 1:(max(values$index))){
+    values$fitted[i+1]=values$level[i]
+    values$level[i+1]=par[1]*values$data[i+1] + (1-par[1])*values$level[i]
+  }
+return(values)
+}
+
+#sum of squared residuals
+my_rss <-function(par){
+ values <- my_ses(par) %>%
+   filter(index > 0) %>%
+   mutate(residuals = (fitted - data)^2)
+   rss <- sum(values$residuals)
+   return(rss)
+}
+
+#optimising parameters
+  optimal_parameters <- optim(par=c(0.5,1),fn=my_rss, lower=c(0,-Inf),upper=c(1,Inf))
+  optimal <- optimal_parameters$par
+  
+#producing forecasts
+  values <- my_ses(c(optimal[1], optimal[2]))
+  forecasts <- tibble(Time=1:h, Forecasts = values$level[length(values)])
+  parameters <- tibble(alpha = optimal[1],l0 = optimal[2])
+  print(parameters)
+  return(forecasts)
+}
+```
+
+```{r}
+sheep <- aus_livestock %>% filter(State == "Victoria") %>% filter(Animal == "Sheep") %>% head(10)
+
+ets(sheep$Count, 10)
+```
+
+> Forecasts using ETS function: 
+
+```{r}
+fit <- sheep %>% 
+  model(Count = ETS(Count ~ error() + trend("N") + season("N"))) %>% forecast(h = 10)
+fit
+```
+
+> Forecasts using forecast::ses function: 
+
+```{r}
+forecast::ses(sheep$Count, h = 10) 
+```
+
+
+
+

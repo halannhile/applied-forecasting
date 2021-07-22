@@ -1,0 +1,135 @@
+---
+title: "Exercise W3"
+author: "Nhi (Chelsea) Le"
+date: "4/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(fpp3)
+```
+
+> Question 1: 
+
+```{r}
+global_economy %>% 
+  mutate(GDP_per_capita = GDP/Population) %>% 
+  filter(Country == "Australia") %>% 
+  autoplot(GDP_per_capita)
+```
+```{r}
+global_economy %>% 
+  group_by(Country) %>% 
+  ggplot(aes(x = Year, y = GDP), labels = "right") + 
+  geom_line()
+```
+
+> Question 2: 
+
+```{r}
+usa_gdp <- global_economy %>% 
+  filter(Country == "United States") %>% 
+  autoplot(GDP/(10e9*CPI)) +
+  ylab("GDP in billions, adjusted for inflation") + 
+  xlab("Year") + 
+  ggtitle("GDP of USA")
+
+usa_gdp
+```
+```{r}
+vic_bulls <- aus_livestock %>%
+  filter(Animal == "Bulls, bullocks and steers", State == "Victoria") 
+```
+
+```{r}
+vic_bulls %>% autoplot(Count)
+```
+
+```{r}
+lambda_vic_bulls <- vic_bulls %>% 
+  features(Count, features = guerrero) %>% 
+  pull(lambda_guerrero) 
+
+vic_bulls %>% autoplot(box_cox(Count,lambda_vic_bulls))
+```
+
+```{r}
+vic_bulls %>% autoplot(log(Count))
+```
+
+```{r}
+vic_elec %>% 
+  autoplot()
+```
+```{r}
+aus_production %>% 
+  autoplot(Gas)
+```
+```{r}
+lambda_gas <- aus_production %>%
+  features(Gas, features = guerrero) %>%
+  pull(lambda_guerrero)
+aus_production %>% autoplot(box_cox(Gas, lambda_gas))
+```
+
+> Question 3: 
+
+```{r}
+canadian_gas %>% autoplot()
+```
+
+```{r}
+set.seed(30100259)
+myseries <- aus_retail %>%
+ filter(`Series ID` == sample(aus_retail$`Series ID`,1)) 
+
+myseries %>% autoplot(Turnover)
+```
+
+```{r}
+lambda_turnover <- myseries %>%
+  features(Turnover, features = guerrero) %>%
+  pull(lambda_guerrero)
+
+myseries %>% autoplot(box_cox(Turnover, lambda_turnover))
+```
+
+```{r}
+lambda_turnover
+```
+
+```{r}
+aus_production_tobacco <- aus_production %>% 
+  select(Quarter, Tobacco)
+
+aus_production_tobacco %>% autoplot()
+```
+
+```{r}
+lambda_gas <- aus_production_tobacco %>%
+  features(, features = guerrero) %>%
+  pull(lambda_guerrero)
+aus_production %>% autoplot(box_cox(Gas, lambda_gas))
+```
+```{r}
+lambda_gas
+```
+
+>
+
+```{r}
+set.seed(30100259) 
+my_aus_retail_timeseries <- aus_retail %>%
+  filter(`Series ID` == sample(aus_retail$`Series ID`,1)) 
+my_aus_retail_timeseries
+```
+
+```{r}
+lambda_retail <- 
+```
+

@@ -10,7 +10,7 @@
 
 https://drive.google.com/file/d/1JcfIPdsRYP-kV-zspAsoYfrOvDaZuZ60/view
 
-## Project Code 
+## Code 
 
 https://github.com/halannhile/applied-forecasting/blob/main/retail_forecasting_project.Rmd
 
